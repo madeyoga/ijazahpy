@@ -2,7 +2,7 @@ import math
 import numpy as np
 import cv2
 from pythonRLSA import rlsa
-from preprocessing import remove_noise_bin as remove_noise
+from ijazahpy.preprocessing import remove_noise_bin as remove_noise
 
 class DotsSegmentation:
     """
@@ -242,7 +242,6 @@ def segment_characters(img_gray, walking_kernel=False):
         for c in contours:
             (x,y,w,h) = cv2.boundingRect(c)
             if w > avgwidth * 0.8:
-##                cv2.rectangle(img, (x,y), (x+w, y+h), (0,0,255), 1)
                 rects.append((x,y,w,h))
                 
         # New Algorithm, Walking Kernel.
@@ -274,11 +273,13 @@ def segment_characters(img_gray, walking_kernel=False):
 
         for c in contours:
             (x,y,w,h) = cv2.boundingRect(c)
-            res.append(((x,y,w,h), gray[y:y+h, x:x+w]))
+            if w > 3 and h > 3:
+                res.append(((x,y,w,h), gray[y:y+h, x:x+w]))
     else:
         for c in contours:
             (x,y,w,h) = cv2.boundingRect(c)
-            res.append(((x,y,w,h), gray[y:y+h, x:x+w]))
+            if h > 3:
+                res.append(((x,y,w,h), gray[y:y+h, x:x+w]))
     
     return sorted(res, key=lambda entry:entry[0][0])
 
