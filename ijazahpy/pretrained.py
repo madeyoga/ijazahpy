@@ -29,10 +29,10 @@ def create_lenet5_mnist():
     return model
 
 def get_digit_recognizer():
-    return load_model('trained_models/character_recognizer-10epochs.h5')
+    return load_model('trained_models/digit_recognizer_model-10epochs.h5')
 
 def get_character_recognizer():
-    return load_model('trained_models/digit_recognizer_model-10epochs.h5')
+    return load_model('trained_models/character_recognizer-10epochs.h5')
 
 def create_tr_model():
     # input with shape of height=32 and width=128 
@@ -65,19 +65,19 @@ def create_tr_model():
     squeezed = Lambda(lambda x: K.squeeze(x, 1))(conv_7)
      
     # bidirectional LSTM layers with units=128
-    blstm_1 = Bidirectional(LSTM(128, return_sequences=True, dropout = 0.2))(squeezed)
-    blstm_2 = Bidirectional(LSTM(128, return_sequences=True, dropout = 0.2))(blstm_1)
+    blstm_1 = Bidirectional(LSTM(256, return_sequences=True, dropout = 0.2))(squeezed)
+    blstm_2 = Bidirectional(LSTM(256, return_sequences=True, dropout = 0.2))(blstm_1)
      
     outputs = Dense(63, activation = 'softmax')(blstm_2)
 
     # model to be used at test time
     act_model = Model(inputs, outputs)
-
+    
     return act_model
 
 def get_text_recognizer():
     model = create_tr_model()
-    model.load_weights('trained_models/best_model-60epochs.hdf5')
+    model.load_weights('trained_models/best_model-4val_loss.hdf5')
     return model
 
 class CharacterRecognizer():
@@ -106,6 +106,36 @@ class CharacterRecognizer():
 
         pred = self.digit_recognizer.predict(normalized_img)
         return pred
+
+class TextRecognizer():
+    def __init__(self):
+        import string
+        self.model = get_text_recognizer()
+        self.char_list = string.ascii_letters + string.digits
+        
+    def recognize(self, prepared_img):
+        """
+        Recognize text in image
+
+        params:
+            prepared_img::ndarray:~ binary image with shape (32,128,1)
+
+        returns a predicted text in string
+        """
+        batch = np.resize(prepared_img, (1, 32, 128, 1))
+        prediction = self.model.predict(batch)
+
+        decoded = K.ctc_decode(prediction,
+                               input_length=np.ones(prediction.shape[0])*prediction.shape[1],
+                               greedy=True)[0][0]
+        output = K.get_value(decoded)
+
+        text = ''
+        for i, x in enumerate(output):
+            for p in x:
+                if int(p) != -1:
+                    text += self.char_list[int(p)]
+        return text
 
 # Test unit
 if __name__ == '__main__':
