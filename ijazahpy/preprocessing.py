@@ -118,7 +118,7 @@ def to_mnist(img_gray):
     blank_image = blank_image.reshape(28, 28)
     return remove_noise_bin(blank_image, noise_size=2)
 
-def prepare_tr_image(img, height):
+def prepare_ws_image(img, height):
     """
     convert given image to grayscale image (if needed) and
     resize to desired height
@@ -130,3 +130,47 @@ def prepare_tr_image(img, height):
     h = img.shape[0]
     factor = height / h
     return cv2.resize(img, dsize=None, fx=factor, fy=factor)
+
+def prepare_text_image(img, thresh=False):
+    """
+    Converts image to shape (32, 128, 1) & normalize
+    params:
+        img::ndarray:~ grayscale/binary image
+    returns a binary image with shape (32, 128, 1)
+    """
+    w, h = img.shape
+    
+    if thresh:
+        _, img = cv2.threshold(img, 
+                               128, 
+                               255, 
+                               cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+
+    new_w = 32
+    new_h = int(h * (new_w / w))
+    img = cv2.resize(img, (new_h, new_w))
+    w, h = img.shape
+    
+    img = img.astype('float32')
+    
+    # Converts each to (32, 128, 1)
+    if w < 32:
+        add_zeros = np.full((32-w, h), 0)
+        img = np.concatenate((img, add_zeros))
+        w, h = img.shape
+    
+    if h < 128:
+        add_zeros = np.full((w, 128-h), 0)
+        img = np.concatenate((img, add_zeros), axis=1)
+        w, h = img.shape
+        
+    if h > 128 or w > 32:
+        dim = (128,32)
+        img = cv2.resize(img, dim)
+    
+    img = np.expand_dims(img, axis=2)
+    
+    # Normalize 
+    img = img / 255
+    
+    return img
