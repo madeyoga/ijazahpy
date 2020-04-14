@@ -77,7 +77,7 @@ def create_tr_model():
 
 def get_text_recognizer():
     model = create_tr_model()
-    model.load_weights('trained_models/best_model-4val_loss.hdf5')
+    model.load_weights('trained_models/best_model.hdf5')
     return model
 
 class CharacterRecognizer():
