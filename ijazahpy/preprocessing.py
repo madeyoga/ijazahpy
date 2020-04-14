@@ -46,7 +46,7 @@ def remove_noise_bin(img_bin, noise_size=3):
     """
 
     original = img_bin.copy()
-    
+
     contours, _ = cv2.findContours(img_bin,
                                    cv2.RETR_EXTERNAL,
                                    cv2.CHAIN_APPROX_NONE)
@@ -62,7 +62,7 @@ def remove_noise_bin(img_bin, noise_size=3):
 
     return img_bin
 
-def to_mnist_ar(img_gray):
+def to_mnist_ar(img_gray, apply_threshold=False):
     """
     Converts image to mnist like format. 28x28 normalized center.
 
@@ -78,7 +78,7 @@ def to_mnist_ar(img_gray):
     # Aspect Ratio
     current_height = img.shape[0]
     current_width = img.shape[1]
-        
+    
     new_height = 22
     new_width = int(current_width * (new_height / current_height))
 
@@ -86,11 +86,13 @@ def to_mnist_ar(img_gray):
     
     img = cv2.resize(img, dimension, 0, 0, interpolation=cv2.INTER_AREA)
     
-    (thresh, img) = cv2.threshold(img,
-                                  128,
-                                  255,
-                                  cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
-
+    if apply_threshold:
+        (thresh, img) = cv2.threshold(img,
+                                      128,
+                                      255,
+                                      cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    else:
+        img = cv2.subtract(255, img)
     blank_image = np.zeros(shape=[28, 28], dtype=np.uint8)
 
     # Calculate offset
@@ -131,7 +133,7 @@ def prepare_ws_image(img, height):
     factor = height / h
     return cv2.resize(img, dsize=None, fx=factor, fy=factor)
 
-def prepare_text_image(img, thresh=False):
+def prepare_for_tr(img, thresh=False):
     """
     Converts image to shape (32, 128, 1) & normalize
     params:
