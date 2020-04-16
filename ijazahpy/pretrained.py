@@ -2,12 +2,12 @@ import numpy as np
 import pandas as pd
 
 from tensorflow.keras import utils
-
-from keras import layers
-from keras.layers import Dense, LSTM, Reshape, BatchNormalization, Input, Conv2D, MaxPool2D, Lambda, Bidirectional
-from keras.models import Model, load_model, Sequential
-from keras.activations import relu, sigmoid, softmax
-import keras.backend as K
+from tensorflow.keras.models import load_model
+from tensorflow.keras import layers
+from tensorflow.keras.layers import Dense, LSTM, Reshape, BatchNormalization, Input, Conv2D, MaxPool2D, Lambda, Bidirectional
+from tensorflow.keras.models import Model, Sequential
+from tensorflow.keras.activations import relu, sigmoid, softmax
+import tensorflow.keras.backend as K
 
 def create_lenet5_mnist():
     model = Sequential()
@@ -122,6 +122,7 @@ class TextRecognizer():
 
         returns a predicted text in string
         """
+        
         batch = np.resize(prepared_img, (1, 32, 128, 1))
         prediction = self.model.predict(batch)
 
