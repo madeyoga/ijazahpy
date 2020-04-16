@@ -55,7 +55,7 @@ def test_recognize():
         
         letters = ""
         # Load model
-        if j == 4:
+        if j == 2:
             cv2.imshow('a', prepared_img)
             for k, entry in enumerate(res):
                 box, curr_img = entry
