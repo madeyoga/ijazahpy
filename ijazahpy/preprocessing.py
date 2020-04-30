@@ -108,15 +108,16 @@ def to_mnist_ar(img_gray, adjusted_height=22, apply_threshold=False):
     
     return blank_image # remove_noise_bin(blank_image, noise_size=1)
 
-def to_mnist(img_gray):
+def to_mnist(img_gray, apply_thresh=False):
     img = img_gray.copy()
     dimension = (22, 22)
     img = cv2.resize(img, dimension, 0, 0, interpolation=cv2.INTER_AREA)
-    
-    (thresh, img) = cv2.threshold(img,
-                                  128,
-                                  255,
-                                  cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+
+    if apply_thresh:
+        (thresh, img) = cv2.threshold(img,
+                                      128,
+                                      255,
+                                      cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
 
     blank_image = np.zeros(shape=[28, 28], dtype=np.uint8)
     blank_image[3:25, 3:25] = img
