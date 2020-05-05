@@ -54,7 +54,7 @@ class DotsSegmentation:
         return img_bin
     
     @staticmethod
-    def get_dots_loc(og):
+    def get_dots_loc(og, dot_size=3):
         img = og.copy()
 
         _, img_bin = cv2.threshold(img,
@@ -85,13 +85,14 @@ class DotsSegmentation:
         for c in contours:
             area = cv2.contourArea(c)
             (x,y,w,h) = cv2.boundingRect(c)
-            if area <= 1 and h < 5: # dots size
+            if area <= dot_size and h < 5: # dots size
                 img[y:y+h, x:x+w] = og[y:y+h, x:x+w]
                 img_bin[y:y+h, x:x+w] = img_bin_og[y:y+h, x:x+w]
         
         return img, img_bin
     
     def segment_dots(self, img_bin):
+        """Connect dots horizontal & Find contours"""
         og = img_bin.copy()
         
         # Setting RLSA
@@ -127,53 +128,80 @@ class DotsSegmentation:
         
         return rects
 
+    def connect_horizontal(self, img_bin, rlsa_val=47):
+        """Connect dots horizontal"""
+        og = img_bin.copy()
+        
+        # Setting RLSA
+        RLSA_VALUE = rlsa_val
+        RLSA_HORIZONTAL = True
+        RLSA_VERTICAL = False
+
+        # Heuristics
+        WIDTH_MULTIPLIER = 2
+        HEIGHT_MULTIPLIER = 1
+        
+        img_bin = cv2.subtract(255, img_bin)
+        
+        img_rlsa = rlsa.rlsa(img_bin,
+                             RLSA_HORIZONTAL,
+                             RLSA_VERTICAL,
+                             RLSA_VALUE)
+        img_rlsa = cv2.subtract(255, img_bin)
+        
+        img_rlsa = self.remove_bin_noise(img_rlsa)
+        
+        return img_rlsa
+    
 class WordSegmentation:
     """
     Word Segmentation Object
     """
     
-    def segment(self, img, kernelSize=25, sigma=11, theta=7, minArea=32):
+    def segment(self, img, kernelSize=25, sigma=11, theta=7, minArea=32, imshow_steps=False):
         """Scale space technique for word segmentation proposed by R. Manmatha: http://ciir.cs.umass.edu/pubfiles/mm-27.pdf
         
-        Args:
-            img: grayscale uint8 image of the text-line to be segmented.
-            kernelSize: size of filter kernel, must be an odd integer.
-            sigma: standard deviation of Gaussian function used for filter kernel.
-            theta: approximated width/height ratio of words, filter function is distorted by this factor.
-            minArea: ignore word candidates smaller than specified area.
+        params:
+            img::ndarray::~ grayscale uint8 image of the text-line to be segmented.
+            kernel_size::uint::~ size of filter kernel, must be an odd integer.
+            sigma::uint::~ standard deviation of Gaussian function used for filter kernel.
+            theta::uint::~ approximated width/height ratio of words, filter function is distorted by this factor.
+            minArea::uint::~ ignore word candidates smaller than specified area.
             
-        Returns:
-            List of tuples. Each tuple contains the bounding box and the image of the segmented word.
+        Returns a list of tuples. Each tuple contains the bounding box and the image of the segmented word.
         """
         
         # apply filter kernel
         kernel = self.create_kernel(kernelSize, sigma, theta)
-        imgFiltered = cv2.filter2D(img,
+        filtered_img = cv2.filter2D(img,
                                    -1,
                                    kernel,
                                    borderType=cv2.BORDER_REPLICATE).astype(np.uint8)
-        (_, imgThres) = cv2.threshold(imgFiltered,
+        
+        (_, bin_img) = cv2.threshold(filtered_img,
                                       0,
                                       255,
                                       cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+        
+        if imshow_steps:
+            cv2.imshow('filtered', filtered_img)
+            cv2.imshow('blob', bin_img)
+            
+        (contours, _) = cv2.findContours(bin_img,
+                                            cv2.RETR_EXTERNAL,
+                                            cv2.CHAIN_APPROX_SIMPLE)
 
-        # find connected components. OpenCV: return type differs between OpenCV2 and 3
-        if cv2.__version__.startswith('3.'):
-            (_, components, _) = cv2.findContours(imgThres, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        else:
-            (components, _) = cv2.findContours(imgThres, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-
-        # append components to result
+        # append contours to result
         res = []
-        for c in components:
+        for c in contours:
             # skip small word candidates
             if cv2.contourArea(c) < minArea:
                 continue
             # append bounding box and image of word to result list
-            currBox = cv2.boundingRect(c) # returns (x, y, w, h)
-            (x, y, w, h) = currBox
-            currImg = img[y:y+h, x:x+w]
-            res.append((currBox, currImg))
+            box = cv2.boundingRect(c) 
+            (x, y, w, h) = box
+            cropped_img = img[y:y+h, x:x+w]
+            res.append((box, cropped_img))
 
         # return list of words, sorted by x-coordinate
         return sorted(res, key=lambda entry:entry[0][0])
@@ -189,33 +217,34 @@ class WordSegmentation:
         return cv2.resize(img, dsize=None, fx=factor, fy=factor)
 
     @staticmethod
-    def create_kernel(kernelSize, sigma, theta):
+    def create_kernel(kernel_size, sigma, theta):
         """
         create anisotropic filter kernel according to given parameters
         """
         
-        assert kernelSize % 2 # must be odd size
-        halfSize = kernelSize // 2
+        assert kernel_size % 2 # must be odd size
+        half_size = kernel_size // 2
         
-        kernel = np.zeros([kernelSize, kernelSize])
-        sigmaX = sigma
-        sigmaY = sigma * theta
+        kernel = np.zeros([kernel_size, kernel_size])
+        sigma_x = sigma
+        sigma_y = sigma * theta
         
-        for i in range(kernelSize):
-            for j in range(kernelSize):
-                x = i - halfSize
-                y = j - halfSize
+        for i in range(kernel_size):
+            for j in range(kernel_size):
+                x = i - half_size
+                y = j - half_size
                 
-                expTerm = np.exp(-x**2 / (2 * sigmaX) - y**2 / (2 * sigmaY))
-                xTerm = (x**2 - sigmaX**2) / (2 * math.pi * sigmaX**5 * sigmaY)
-                yTerm = (y**2 - sigmaY**2) / (2 * math.pi * sigmaY**5 * sigmaX)
+                expTerm = np.exp(-x**2 / (2 * sigma_x) - y**2 / (2 * sigma_y))
+                xTerm = (x**2 - sigma_x**2) / (2 * math.pi * sigma_x**2 * sigma_y)
+                yTerm = (y**2 - sigma_y**2) / (2 * math.pi * sigma_y**2 * sigma_x)
                 
                 kernel[i, j] = (xTerm + yTerm) * expTerm
 
         kernel = kernel / np.sum(kernel)
         return kernel
 
-def segment_characters(img_gray, walking_kernel=False):
+# Fails
+def segment_characters(img_gray, walking_kernel=False, remove_noise=False):
     """Segments characters"""
     
     gray = img_gray.copy()
@@ -224,11 +253,12 @@ def segment_characters(img_gray, walking_kernel=False):
                                255,
                                cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
 
-    img_bin = remove_noise(img_bin,2)
+    if remove_noise:
+        img_bin = remove_noise(img_bin,2)
 
     contours, _ = cv2.findContours(img_bin,
-                     cv2.RETR_EXTERNAL,
-                     cv2.CHAIN_APPROX_NONE)
+                                 cv2.RETR_EXTERNAL,
+                                 cv2.CHAIN_APPROX_NONE)
 
     heights = [cv2.boundingRect(contour)[3] for contour in contours]
     avgheight = sum(heights)/len(heights) # average height
@@ -247,7 +277,7 @@ def segment_characters(img_gray, walking_kernel=False):
         # New Algorithm, Walking Kernel.
         for (x,y,w,h) in rects:
             # mid_percent = 0.8
-            mid_index = int(h * 0.7)
+            mid_index = int(h * 0.5)
 
             # kernel_width = 2
             kernel = (2,h)
@@ -283,7 +313,101 @@ def segment_characters(img_gray, walking_kernel=False):
     
     return sorted(res, key=lambda entry:entry[0][0])
 
-if __name__ == '__main__':
-    img = cv2.imread('samples/random1.jpg', cv2.IMREAD_GRAYSCALE)
-    wordSegmentation = WordSegmentation()
-    print(wordSegmentation.segment(img))
+# Fails
+def segment_character2(img_gray):
+    gray = img_gray.copy()
+    _, img_bin = cv2.threshold(gray,
+                               0,
+                               255,
+                               cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+
+    img_bin = remove_noise(img_bin, 3)
+    
+    kernel = np.ones((2,1))
+    erosion = cv2.morphologyEx(img_bin, cv2.MORPH_OPEN, kernel)# cv2.erode(img_bin, kernel, iterations=1)
+    cv2.imshow('erosion', erosion)
+
+    ero_inv = cv2.subtract(255, erosion)
+    
+    img_rlsa = rlsa.rlsa(ero_inv,
+                         True,
+                         True,
+                         10)
+    res = cv2.subtract(255, img_rlsa)
+
+    cv2.imshow('res', res)
+
+    contours, _ = cv2.findContours(res,
+                                 cv2.RETR_EXTERNAL,
+                                 cv2.CHAIN_APPROX_NONE)
+
+    for c in contours:
+        (x,y,w,h) = cv2.boundingRect(c)
+        if h > 3:
+            cv2.rectangle(gray, (x,y), (x+w, y+h), (0, 0, 0), 1)
+
+    cv2.imshow('final', gray)
+    return
+
+def segment_words(img_gray, rlsa_val=7, bin_result=False):
+    """ Segment words with RLSA
+
+    params:
+        img_gray::ndarray:~ grayscale image
+        rlsa_val::integer:~ value for run length smoothing algorithm
+
+    Returns a list of tuple -> ((x,y,w,h), image_array)
+    """
+    
+    gray = img_gray.copy()
+    
+    _, img_bin = cv2.threshold(gray,
+                               0,
+                               255,
+                               cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+
+    img_bin = remove_noise(img_bin, 30)
+
+    img_bin_og = img_bin.copy()
+    
+    img_bin = cv2.subtract(255, img_bin)
+
+    img_rlsa = rlsa.rlsa(img_bin,
+                         True,
+                         True,
+                         rlsa_val)
+
+    res = cv2.subtract(255, img_rlsa)
+
+    contours, _ = cv2.findContours(res,
+                                 cv2.RETR_EXTERNAL,
+                                 cv2.CHAIN_APPROX_NONE)
+
+    res = []
+    for c in contours:
+        (x,y,w,h) = cv2.boundingRect(c)
+        if h > 3:
+            if bin_result:
+                cropped_img = img_bin_og[y:y+h, x:x+w]
+            else:
+                cropped_img = gray[y:y+h, x:x+w]
+                
+            zipp = ((x,y,w,h), cropped_img)
+            res.append(zipp)
+            
+    return res
+
+##if __name__ == '__main__':
+##    filepath = 'G:\Kuliah\skripsi\github\SimpleApp-master\SimpleApp\media/'.replace('\\', '/')
+##    filename = '2ijazah3.jpg'
+##    print(filepath+filename)
+##    img = cv2.imread(filepath+filename, cv2.IMREAD_GRAYSCALE)
+##    
+##    res = segment_words(img, bin_result=True)
+##    
+####    img = cv2.imread('samples/random1.jpg', cv2.IMREAD_GRAYSCALE)
+####    wordSegmentation = WordSegmentation()
+####    res = wordSegmentation.segment(img, imshow_steps=True)
+##    for i, entry, in enumerate(res):
+##        (box, img) = entry
+##        cv2.imshow(str(i), img)

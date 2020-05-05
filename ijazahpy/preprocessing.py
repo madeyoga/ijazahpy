@@ -8,7 +8,7 @@ def crop_ijazah(img):
     params:
     img::ndarray::~ Ijazah Image in BGR or Grayscale
     
-    Returns an image
+    Returns an image in numpy array
     """
     
     X = 112
@@ -108,21 +108,70 @@ def to_mnist_ar(img_gray, adjusted_height=22, apply_threshold=False):
     
     return blank_image # remove_noise_bin(blank_image, noise_size=1)
 
-def to_mnist(img_gray, apply_thresh=False):
+def to_mnist(img_gray, apply_thresh=False, aspect_ratio=False):
+    """
+    Converts image to mnist like format. 28x28 normalized center.
+
+    params:
+    img::ndarray::~ Grayscale image, white as background
+    apply_thresh::boolean::~ apply threshold if true
+    aspect_ratio::boolean::~ apply aspect ratio if true
+
+    Returns image with size 28x28
+    """
     img = img_gray.copy()
-    dimension = (22, 22)
-    img = cv2.resize(img, dimension, 0, 0, interpolation=cv2.INTER_AREA)
+    if aspect_ratio:
+        mnist_x = 28
+        mnist_y = 28
+        center_x, center_y = int(mnist_x/2), int(mnist_y/2)
 
-    if apply_thresh:
-        (thresh, img) = cv2.threshold(img,
-                                      128,
-                                      255,
-                                      cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+        # Aspect Ratio
+        current_height = img.shape[0]
+        current_width = img.shape[1]
 
-    blank_image = np.zeros(shape=[28, 28], dtype=np.uint8)
-    blank_image[3:25, 3:25] = img
-    blank_image = blank_image.reshape(28, 28)
-    return remove_noise_bin(blank_image, noise_size=2)
+        new_height = adjusted_height
+        new_width = int(new_height * current_width / current_height)
+
+        if new_width >= 28:
+            new_width = new_height
+            
+        dimension = (new_width, new_height)
+        
+        img = cv2.resize(img, dimension, 0, 0, interpolation=cv2.INTER_AREA)
+        
+        if apply_threshold:
+            (thresh, img) = cv2.threshold(img,
+                                          128,
+                                          255,
+                                          cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+        else:
+            img = cv2.subtract(255, img)
+        blank_image = np.zeros(shape=[28, 28], dtype=np.uint8)
+
+        # Calculate offset
+        start_x = center_x - int(0.5 * new_width)
+        start_y = center_y - int(0.5 * new_height)
+
+        # Place center
+        blank_image[start_y:start_y+new_height, start_x:start_x+new_width] = img    
+        blank_image = blank_image.reshape(28, 28)
+        
+        return blank_image
+    else:
+        dimension = (22, 22)
+        img = cv2.resize(img, dimension, 0, 0, interpolation=cv2.INTER_AREA)
+
+        if apply_thresh:
+            (thresh, img) = cv2.threshold(img,
+                                          128,
+                                          255,
+                                          cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+        else:
+            img = cv2.subtract(255, img)
+        blank_image = np.zeros(shape=[28, 28], dtype=np.uint8)
+        blank_image[3:25, 3:25] = img
+        blank_image = blank_image.reshape(28, 28)
+        return blank_image
 
 def prepare_ws_image(img, height):
     """
@@ -141,7 +190,7 @@ def prepare_for_tr(img, thresh=False):
     """
     Converts image to shape (32, 128, 1) & normalize
     params:
-        img::ndarray:~ grayscale/binary image
+        img::ndarray:~ grayscale image
     returns a binary image with shape (32, 128, 1)
     """
     w, h = img.shape
