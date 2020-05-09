@@ -34,7 +34,7 @@ def crop(img, dim, X, Y, W, H):
     img = img[Y:Y+H, X:X+W]
     return img
 
-def remove_noise_bin(img_bin, noise_size=3):
+def remove_noise_bin(original, noise_size=3):
     """
     Removes noises
 
@@ -45,7 +45,7 @@ def remove_noise_bin(img_bin, noise_size=3):
     Returns an image in numpy array.
     """
 
-    original = img_bin.copy()
+    img_bin = original.copy()
 
     contours, _ = cv2.findContours(img_bin,
                                    cv2.RETR_EXTERNAL,
@@ -55,11 +55,11 @@ def remove_noise_bin(img_bin, noise_size=3):
         (x,y,w,h) = cv2.boundingRect(c)
         
         area = cv2.contourArea(c)
+        
         if area <= noise_size:
-
             black = np.zeros((h,w))
             img_bin[y:y+h, x:x+w] = black
-
+    
     return img_bin
 
 def to_mnist_ar(img_gray, adjusted_height=22, apply_threshold=False):
@@ -108,7 +108,7 @@ def to_mnist_ar(img_gray, adjusted_height=22, apply_threshold=False):
     
     return blank_image # remove_noise_bin(blank_image, noise_size=1)
 
-def to_mnist(img_gray, apply_thresh=False, aspect_ratio=False):
+def to_mnist(img_gray, apply_thresh=False, aspect_ratio=False, adjusted_height=22):
     """
     Converts image to mnist like format. 28x28 normalized center.
 
@@ -139,7 +139,7 @@ def to_mnist(img_gray, apply_thresh=False, aspect_ratio=False):
         
         img = cv2.resize(img, dimension, 0, 0, interpolation=cv2.INTER_AREA)
         
-        if apply_threshold:
+        if apply_thresh:
             (thresh, img) = cv2.threshold(img,
                                           128,
                                           255,
@@ -228,4 +228,26 @@ def prepare_for_tr(img, thresh=False):
     # Normalize 
     img = img / 255
     
+    return img
+
+def preprocess_for_tesseract(img_gray):
+    """Preprocess image for tesseract text recogntion
+
+    params:
+        img::ndarray:~ a grayscale image.
+
+    Returns a binary image.
+    """
+
+    img = img_gray.copy()
+    
+    assert img.ndim in (2, 3)
+    if img.ndim == 3:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        
+    _, img_bin = cv2.threshold(img,
+                               0,
+                               255,
+                               cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    img = cv2.subtract(255, remove_noise_bin(img_bin, 1))
     return img

@@ -1,13 +1,51 @@
-import os
+import Levenshtein as lv
 
-import numpy as np
-import cv2
+ijazah_dictionary = {
+    # SMA/SMK 2013/2014 2015/2016
+    'nama': 'Nama',
+    'tempatdantanggallahir': 'Tempat dan Tanggal Lahir',
+    'namaorangtua/wali': 'Nama Orang Tua/Wali',
+    'nomorinduksiswa': 'Nomor Induk Siswa',
+    'nomorinduksiswanasional': 'Nomor Induk Siswa Nasional',
+    'nomorpesertaujiannasional': 'Nomor Peserta Ujian Nasional',
+    'sekolahasal': 'Sekolah Asal',
+    'programkeahlian': 'Program Keahlian',
+    'paketkeahlian': 'Paket Keahlian',
+    # SMA 2008/2009
+    'namaorangtua': 'Nama Orang Tua',
+    'nomorinduk': 'Nomor Induk',
+    'nomorpeserta': 'Nomor Peserta',
+    # SMA Tahun < 2011 Paket C dll.
+    'kelompokbelajar': 'Kelompok Belajar',
+    'desa/kelurahan': 'Desa/Kelurahan',
+    'kecamatan': 'Kecamatan',
+    }
 
-from preprocessing import *
-from segmentation import *
-from pretrained import TextRecognizer
+def process_label(label, metrics='jaro', tolerance=0.5):
+    
+    if label == '':
+        return label
+    
+    if metrics == 'jaro':
+        distance_function = lv.jaro
+    elif metrics == 'ratio':
+        distance_function = lv.ratio
+    else:
+        raise Exception('Invalid metrics: {}. valid metrics: jaro, ratio.'.format(metrics))
 
-import pytesseract
+    # Get the highest similarity
+    result = ''
+    highest = -1
+    for key in ijazah_dictionary.keys():
+        current_score = distance_function(key, label)
+        if highest < current_score:
+            result = ijazah_dictionary[key]
+            highest = current_score
+
+    if highest > tolerance:
+        return result
+    
+    return label
 
 def test_recognize():
     filepath = 'samples/'
@@ -86,7 +124,28 @@ def test_recognize():
     ##                # predict text
             print(letters)
             break
+    return 0
+
+def test_word_segmentation():
+    filepath = "G:\\Kuliah\\skripsi\\github\\SimpleApp-master\\SimpleApp\\media\\"
+    filename = "2Ijazah1.jpg"
     
+    img = cv2.imread(filepath+filename, cv2.IMREAD_GRAYSCALE)
+    cv2.imshow('og', img)
+
+##    prepared = prepare_ws_image(img, 32)
+##    cv2.imshow('prepared1', prepared)
+    
+    ws = WordSegmentation()
+    res = ws.segment(img, imshow_steps=True)
+
+    for k, w in enumerate(res):
+        (word_box, word_img) = w
+        cv2.imshow(str(k), word_img)
+        cv2.rectangle(img, (word_box[0], word_box[1]), (word_box[0]+word_box[2], word_box[1]+word_box[3]), (0, 0, 0), 1)
+    cv2.imshow('res', img)
+    return 0
+
 def deskew(img):
     m = cv2.moments(img)
     if abs(m['mu02']) < 1e-2:
@@ -100,5 +159,30 @@ def deskew(img):
                          flags=cv2.WARP_INVERSE_MAP | cv2.INTER_LINEAR)
     return img
 
+def test_dots():
+    dot = DotsSegmentation()
+
+    img = cv2.imread('samples/ijazah1.jpg', cv2.IMREAD_GRAYSCALE)
+    cv2.imshow('og', img)
+
+    (img_gray, img_bin) = dot.get_dots_loc(img, 5)
+
+    connected_dots = dot.connect_horizontal(img_bin)
+    cv2.imshow('c', connected_dots)
+    cv2.imwrite('c.png', connected_dots)
+##    cv2.imshow('g', img_gray)
+##    cv2.imshow('b', img_bin)
+##    cv2.imwrite('g.png', img_gray)
+##    cv2.imwrite('b.png', img_bin)
+    return 0
+
 if __name__ == '__main__':
-    test_recognize()
+    import os
+    import numpy as np
+    import cv2
+    from preprocessing import *
+    from segmentation import *
+    from pretrained import TextRecognizer
+    import pytesseract
+    
+    test_word_segmentation()
