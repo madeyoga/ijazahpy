@@ -158,7 +158,8 @@ class WordSegmentation:
     Word Segmentation Object
     """
     
-    def segment(self, img, kernelSize=25, sigma=11, theta=7, minArea=32, imshow_steps=False):
+    def segment(self, img, kernelSize=25, sigma=11,
+                theta=7, minArea=32, imshow_steps=False):
         """Scale space technique for word segmentation proposed by R. Manmatha: http://ciir.cs.umass.edu/pubfiles/mm-27.pdf
         
         params:
@@ -176,12 +177,13 @@ class WordSegmentation:
         filtered_img = cv2.filter2D(img,
                                    -1,
                                    kernel,
-                                   borderType=cv2.BORDER_REPLICATE).astype(np.uint8)
+                                   borderType=cv2.BORDER_REPLICATE).astype(
+                                       np.uint8)
         
         (_, bin_img) = cv2.threshold(filtered_img,
                                       0,
                                       255,
-                                      cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+                                      cv2.THRESH_BINARY_INV|cv2.THRESH_OTSU)
         
         if imshow_steps:
             cv2.imshow('filtered', filtered_img)
@@ -244,31 +246,32 @@ class WordSegmentation:
         return kernel
 
 # Fails
-def segment_characters(img_gray, walking_kernel=False, remove_noise=False):
+def segment_characters(img_gray, walking_kernel=False, noise_remove=False):
     """Segments characters"""
     
     gray = img_gray.copy()
+    
     _, img_bin = cv2.threshold(gray,
-                               0,
-                               255,
-                               cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
-
-    if remove_noise:
-        img_bin = remove_noise(img_bin,2)
-
+                           0,
+                           255,
+                           cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    
+    if noise_remove:
+        img_bin = remove_noise(img_bin,3)
+        
     contours, _ = cv2.findContours(img_bin,
                                  cv2.RETR_EXTERNAL,
                                  cv2.CHAIN_APPROX_NONE)
-
-    heights = [cv2.boundingRect(contour)[3] for contour in contours]
-    avgheight = sum(heights)/len(heights) # average height
-
-    widths = [cv2.boundingRect(contour)[2] for contour in contours]
-    avgwidth = sum(widths) / len(widths)
-
     res = []
     if walking_kernel:
+
+        heights = [cv2.boundingRect(contour)[3] for contour in contours]
+        avgheight = sum(heights)/len(heights) # average height
+
+        widths = [cv2.boundingRect(contour)[2] for contour in contours]
+        avgwidth = sum(widths) / len(widths)
         rects = []
+        
         for c in contours:
             (x,y,w,h) = cv2.boundingRect(c)
             if w > avgwidth * 0.8:
@@ -308,7 +311,7 @@ def segment_characters(img_gray, walking_kernel=False, remove_noise=False):
     else:
         for c in contours:
             (x,y,w,h) = cv2.boundingRect(c)
-            if h > 3:
+            if h > 3 and h < 60:
                 res.append(((x,y,w,h), gray[y:y+h, x:x+w]))
     
     return sorted(res, key=lambda entry:entry[0][0])
