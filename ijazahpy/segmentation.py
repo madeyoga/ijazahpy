@@ -97,7 +97,7 @@ class DotsSegmentation:
     def segment_dots(self, img_bin, field_height=22, min_width=32, imshow=False):
         """Connect dots horizontal & Find contours"""
         
-        img_rlsa = self.connect_horizontal(img_bin, self.RLSA_VAL)
+        img_rlsa = self.connect_horizontal(img_bin, self.RLSA_VALUE)
                                          
         if imshow:
             cv2.imshow('connect', img_rlsa)
@@ -108,7 +108,6 @@ class DotsSegmentation:
         rects = []
         for c in contours:
             (x,y,w,h) = cv2.boundingRect(c)
-            # Heuristics: self.min_width, self.min_height
             if h < 9 and w > min_width:
                 rects.append((x,y-field_height,w,h+field_height))
 
