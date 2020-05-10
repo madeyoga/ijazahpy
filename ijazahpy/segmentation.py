@@ -21,7 +21,7 @@ class DotsSegmentation:
         self.min_h = min_h
         self.RLSA_VALUE = rlsa_val
     
-    def segment(self, img):
+    def segment(self, img, dot_size=3, min_width=32, imshow=False):
         """
         params:
             img::ndarray::~ Grayscale image
@@ -29,11 +29,15 @@ class DotsSegmentation:
         Returns an array of tuples (x,y,w,h)
         """
         og = img.copy()
-        dots_loc, dots_loc_bin = self.get_dots_loc(og)
-        rects = self.segment_dots(dots_loc_bin)
+        dots_loc, dots_loc_bin = self.get_dots_loc(og, dot_size=dot_size)
+        
+        if imshow:
+            cv2.imshow('dots', dots_loc_bin)
+            
+        rects = self.segment_dots(dots_loc_bin, min_width=min_width, imshow=imshow)
         return rects
 
-    def remove_bin_noise(self, img_bin, min_noise_size=50):
+    def remove_bin_noise(self, img_bin, min_line_width=50):
         """
         Removes noise in binary image.
 
@@ -45,8 +49,8 @@ class DotsSegmentation:
                                        cv2.RETR_EXTERNAL,
                                        cv2.CHAIN_APPROX_NONE)
         for c in contours:
-            area = cv2.contourArea(c)
-            if area <= min_noise_size:
+            (x,y,w,h) = cv2.boundingRect(c)
+            if w <= min_line_width:
                 (x,y,w,h) = cv2.boundingRect(c)
                 black = np.zeros((h, w))
                 img_bin[y:y+h, x:x+w] = black
@@ -60,8 +64,7 @@ class DotsSegmentation:
         _, img_bin = cv2.threshold(img,
                                    100,
                                    255,
-                                   cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-        img_bin = cv2.subtract(255, img_bin)
+                                   cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
         img_bin_og = img_bin.copy()
 
         contours, _ = cv2.findContours(img_bin,
@@ -91,29 +94,14 @@ class DotsSegmentation:
         
         return img, img_bin
     
-    def segment_dots(self, img_bin):
+    def segment_dots(self, img_bin, field_height=22, min_width=32, imshow=False):
         """Connect dots horizontal & Find contours"""
-        og = img_bin.copy()
         
-        # Setting RLSA
-        RLSA_VALUE = self.RLSA_VALUE
-        RLSA_HORIZONTAL = True
-        RLSA_VERTICAL = False
-
-        # Heuristics
-        WIDTH_MULTIPLIER = 2
-        HEIGHT_MULTIPLIER = 1
-        
-        img_bin = cv2.subtract(255, img_bin)
-        
-        img_rlsa = rlsa.rlsa(img_bin,
-                             RLSA_HORIZONTAL,
-                             RLSA_VERTICAL,
-                             RLSA_VALUE)
-        img_rlsa = cv2.subtract(255, img_bin)
-        
-        img_rlsa = self.remove_bin_noise(img_rlsa)
-        
+        img_rlsa = self.connect_horizontal(img_bin, self.RLSA_VAL)
+                                         
+        if imshow:
+            cv2.imshow('connect', img_rlsa)
+            
         (contours, _) = cv2.findContours(img_rlsa,
                                        cv2.RETR_EXTERNAL,
                                        cv2.CHAIN_APPROX_NONE)
@@ -121,14 +109,15 @@ class DotsSegmentation:
         for c in contours:
             (x,y,w,h) = cv2.boundingRect(c)
             # Heuristics: self.min_width, self.min_height
-            if h < 9 and w > 100:
-                rects.append((x,y-21,w,h+21))
+            if h < 9 and w > min_width:
+                rects.append((x,y-field_height,w,h+field_height))
 
         rects.sort(key=lambda tup: tup[1])
         
         return rects
 
-    def connect_horizontal(self, img_bin, rlsa_val=47):
+    @staticmethod
+    def connect_horizontal(img_bin, rlsa_val=47):
         """Connect dots horizontal"""
         og = img_bin.copy()
         
@@ -136,20 +125,13 @@ class DotsSegmentation:
         RLSA_VALUE = rlsa_val
         RLSA_HORIZONTAL = True
         RLSA_VERTICAL = False
-
-        # Heuristics
-        WIDTH_MULTIPLIER = 2
-        HEIGHT_MULTIPLIER = 1
         
         img_bin = cv2.subtract(255, img_bin)
-        
         img_rlsa = rlsa.rlsa(img_bin,
                              RLSA_HORIZONTAL,
                              RLSA_VERTICAL,
                              RLSA_VALUE)
         img_rlsa = cv2.subtract(255, img_bin)
-        
-        img_rlsa = self.remove_bin_noise(img_rlsa)
         
         return img_rlsa
     
