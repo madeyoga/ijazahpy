@@ -1,8 +1,9 @@
 *__pycache__*
-*.jpg
 *.jpeg
 *.png
 samples/
 other_samples/
 *.hdf5
-
+images/
+*.samples/
+*.other_samples/
