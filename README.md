@@ -3,15 +3,14 @@ Python wrapper untuk segmentasi lokasi data dari gambar scan ijazah sekolah Indo
 
 ## Install
 - Clone project
-- Open directory in cmd
-
+- Open the project directory in cmd
 ```
 C:\...\ijazahpy-master> pip install -r requirements.txt
 C:\...\ijazahpy-master> pip install .
 ```
 
 ## Contoh visual segmentasi lokasi data ijazah
-```
+```python
 import cv2
 from ijazahpy.preprocessing import crop_ijazah
 from ijazahpy.segmentation import DotsSegmentation
