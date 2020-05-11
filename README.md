@@ -16,8 +16,7 @@ from ijazahpy.preprocessing import crop_ijazah
 from ijazahpy.segmentation import DotsSegmentation
 
 # Initialize object
-dot = DotsSegmentation()
-dot.RLSA_VAL = 47
+dot = DotsSegmentation(rlsa_val=47)
 
 # Load gambar 'input' ijazah
 img = crop_ijazah(cv2.imread('replace me', cv2.IMREAD_GRAYSCALE))
