@@ -17,8 +17,7 @@ class DotsSegmentation:
     
     """
 
-    def __init__(self, min_h=9, rlsa_val=47):
-        self.min_h = min_h
+    def __init__(self, rlsa_val=47):
         self.RLSA_VALUE = rlsa_val
     
     def segment(self, img, dot_size=3, min_width=32, imshow=False):
@@ -94,7 +93,7 @@ class DotsSegmentation:
         
         return img, img_bin
     
-    def segment_dots(self, img_bin, field_height=22, min_width=32, imshow=False):
+    def segment_dots(self, img_bin, field_height=22, min_width=32, min_height=9, imshow=False):
         """Connect dots horizontal & Find contours"""
         
         img_rlsa = self.connect_horizontal(img_bin, self.RLSA_VALUE)
@@ -108,7 +107,7 @@ class DotsSegmentation:
         rects = []
         for c in contours:
             (x,y,w,h) = cv2.boundingRect(c)
-            if h < 9 and w > min_width:
+            if h < min_height and w > min_width:
                 rects.append((x,y-field_height,w,h+field_height))
 
         rects.sort(key=lambda tup: tup[1])
