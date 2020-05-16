@@ -17,11 +17,10 @@ class DotsSegmentation:
     
     """
 
-    def __init__(self, min_h=9, rlsa_val=47):
-        self.min_h = min_h
+    def __init__(self, rlsa_val=47):
         self.RLSA_VALUE = rlsa_val
     
-    def segment(self, img, dot_size=3, min_width=32, imshow=False):
+    def segment(self, img, dot_size=3, min_width=72, min_height=9, imshow=False):
         """
         params:
             img::ndarray::~ Grayscale image
@@ -34,7 +33,10 @@ class DotsSegmentation:
         if imshow:
             cv2.imshow('dots', dots_loc_bin)
             
-        rects = self.segment_dots(dots_loc_bin, min_width=min_width, imshow=imshow)
+        rects = self.segment_dots(dots_loc_bin,
+                                  min_width=min_width,
+                                  min_height=min_height,
+                                  imshow=imshow)
         return rects
 
     def remove_bin_noise(self, img_bin, min_line_width=50):
@@ -94,30 +96,20 @@ class DotsSegmentation:
         
         return img, img_bin
     
-    def segment_dots(self, img_bin, field_height=22, min_width=32, imshow=False):
+    def segment_dots(self, img_bin, field_height=22, min_width=72, min_height=9, imshow=False):
         """Connect dots horizontal & Find contours"""
         
         img_rlsa = self.connect_horizontal(img_bin, self.RLSA_VALUE)
                                          
         if imshow:
             cv2.imshow('connect', img_rlsa)
-            
-        (contours, _) = cv2.findContours(img_rlsa,
-                                       cv2.RETR_EXTERNAL,
-                                       cv2.CHAIN_APPROX_NONE)
-        rects = []
-        for c in contours:
-            (x,y,w,h) = cv2.boundingRect(c)
-            if h < 9 and w > min_width:
-                rects.append((x,y-field_height,w,h+field_height))
-
-        rects.sort(key=lambda tup: tup[1])
         
-        return rects
+        return self.segment_line(img_rlsa, field_height, min_width, min_height)
 
     @staticmethod
     def connect_horizontal(img_bin, rlsa_val=47):
         """Connect dots horizontal"""
+        
         og = img_bin.copy()
         
         # Setting RLSA
@@ -133,6 +125,25 @@ class DotsSegmentation:
         img_rlsa = cv2.subtract(255, img_bin)
         
         return img_rlsa
+
+    @staticmethod
+    def segment_line(img_bin, field_height=22, min_width=72, min_height=9):
+        """Segment connected dots"""
+        
+        img_rlsa = img_bin.copy()
+        
+        (contours, _) = cv2.findContours(img_rlsa,
+                                       cv2.RETR_EXTERNAL,
+                                       cv2.CHAIN_APPROX_NONE)
+        rects = []
+        for c in contours:
+            (x,y,w,h) = cv2.boundingRect(c)
+            if h < min_height and w > min_width:
+                rects.append((x,y-field_height,w,h+field_height))
+
+        rects.sort(key=lambda tup: tup[1])
+        
+        return rects
     
 class WordSegmentation:
     """
