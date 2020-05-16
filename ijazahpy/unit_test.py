@@ -161,20 +161,47 @@ def deskew(img):
 
 def test_dots():
     dot = DotsSegmentation()
+    # Segment 1 with crop5
+    dot.RLSA_VALUE = 47
 
-    img = cv2.imread('samples/ijazah1.jpg', cv2.IMREAD_GRAYSCALE)
-    cv2.imshow('og', img)
-
-    (img_gray, img_bin) = dot.get_dots_loc(img, 5)
-
-    connected_dots = dot.connect_horizontal(img_bin)
-    cv2.imshow('c', connected_dots)
-    cv2.imwrite('c.png', connected_dots)
-##    cv2.imshow('g', img_gray)
-##    cv2.imshow('b', img_bin)
-##    cv2.imwrite('g.png', img_gray)
-##    cv2.imwrite('b.png', img_bin)
+    path = 'samples/'
+    files = os.listdir(path)
+    for filename in files:        
+        img = crop_ijazah(cv2.imread(path+filename, cv2.IMREAD_GRAYSCALE))
+        rects = dot.segment(img, min_width=64)
+        for box in rects:
+            (x,y,w,h) = box
+            cv2.rectangle(img, (x,y), (x+w,y+h), (0,0,0), 2)
+        cv2.imwrite('G:\\Kuliah\\skripsi\\github\\ijazahpy\\images\\'+filename, img)
+    
+    # Segment 2 without crop ijazah
+##    (img_gray, img_bin) = dot.get_dots_loc(img, 5)
+##
+##    connected_dots = dot.connect_horizontal(img_bin)
+##    cv2.imshow('c', connected_dots)
+##    cv2.imwrite('c.png', connected_dots)
+####    cv2.imshow('g', img_gray)
+####    cv2.imshow('b', img_bin)
+####    cv2.imwrite('g.png', img_gray)
+####    cv2.imwrite('b.png', img_bin)
     return 0
+
+def test_ijazah_kuliah():
+    dot = DotsSegmentation()
+    
+    img = crop_ijazah(cv2.imread('samples/random21.jpg', cv2.IMREAD_GRAYSCALE))
+    cv2.imshow('b', img)
+    
+    dots_img, img_bin = dot.get_dots_loc(img, 10)
+    cv2.imshow('a', img_bin)
+    
+    rects = dot.segment_dots(img_bin)
+
+    for r in rects:
+        (x,y,w,h) = r
+        cv2.rectangle(img, (x,y), (x+w, y+h), (0,0,0), 2)
+    cv2.imshow('c', img)
+    
 
 if __name__ == '__main__':
     import os
@@ -182,7 +209,8 @@ if __name__ == '__main__':
     import cv2
     from preprocessing import *
     from segmentation import *
-    from pretrained import TextRecognizer
-    import pytesseract
+##    from pretrained import TextRecognizer
+##    import pytesseract
     
-    test_word_segmentation()
+    test_ijazah_kuliah()
+##    test_word_segmentation()
