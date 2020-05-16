@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='ijazahpy',
-      version='0.2.0',
+      version='0.2.2',
       description='Segmentasi Ijazah Indonesia',
       url='https://github.com/madeyoga/ijazahpy',
       author='Yeogaa',
