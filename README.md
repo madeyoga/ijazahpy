@@ -1,6 +1,6 @@
 # ijazahpy
 [![Discord Badge](https://discordapp.com/api/guilds/458296099049046018/embed.png)](https://discord.gg/Y8sB4ay)
-[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/MadeYoga/Nano-Rewrite/issues)
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/madeyoga/ijazahpy/pulls)
 [![CodeFactor](https://www.codefactor.io/repository/github/madeyoga/ijazahpy/badge)](https://www.codefactor.io/repository/github/madeyoga/ijazahpy)
 
 Python wrapper untuk segmentasi lokasi data dari gambar scan ijazah sekolah Indonesia.
