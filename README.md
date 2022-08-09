@@ -87,4 +87,6 @@ Repositori proses tahapan ke 3: _[Handwritten Text Recognition](https://github.c
 
 Link [Digital collection buku skripsi](https://dewey.petra.ac.id/catalog/digital/detail?id=48502)
 
+![poster skripsi](https://dewey.petra.ac.id/catalog/digital/cover-preview?id=48502)
+
 Semoga bermanfaat 
