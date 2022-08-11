@@ -6,7 +6,21 @@
 Skripsi 2020 jurusan Informatika. Implementasi algoritma DotSegmentation. Python wrapper untuk segmentasi lokasi data dari gambar scan ijazah sekolah Indonesia.
 
 ## Permasalahan
-Otomatisasi pembacaan data pada ijazah menjadi tantangan dalam bidang pendataan murid, terutama dalam kasus penerimaan murid baru atau mahasiswa baru. Penelitian ini dibuat untuk menyelesaikan permasalahan tersebut. Secara garis besar, tahapan program dalam penelitian ini ialah: Input program berupa sebuah gambar ijazah, diproses, dan menghasilkan output sebuah label dan text.
+Ijazah merupakan sebuah dokumen yang di berikan kepada siswa yang telah menyelesaikan jenjang pendidikan tertentu. Ijazah memiliki jenis form yang beragam. Hal ini dapat diperhatikan seperti ijazah SMA dan ijazah SMK. Ijazah SMK memiliki baris data lebih banyak dibanding Ijazah SMA. 
+
+| Ijazah SMA             |  Ijazah SMK  |
+:-------------------------:|:-------------------------:
+<img src="https://blue.kumparan.com/image/upload/fl_progressive,fl_lossy,c_fill,q_auto:best,w_640/v1632364372/znp4baxizfyd63f9kxbu.jpg" width="75%" height="75%" />  |  <img src="https://www.quipper.com/id/blog/wp-content/uploads/2021/09/Ijazah-SMK.webp" width="75%" height="75%" />
+
+Begitu juga dengan perbedaan tahun periode pelajaran. Setiap rilis form ijazah tahun ajaran baru, ada kemungkinan bentuk form tersebut berubah. Dapat diperhatikan Ijazah SMA tahun ajaran 2015/2016 berbeda dengan Ijazah tahun ajaran 2020/2021 dibawah. Ijazah 2016 memiliki jumlah baris data yang lebih sedikit bandingkan dengan Ijazah 2021. 
+
+| Ijazah 2015/2016             |  Ijazah 2020/2021  |
+:-------------------------:|:-------------------------:
+![](https://data03.123doks.com/thumbv2/123dok/000/162/162082/cover.webp)  |  ![](https://www.imrantululi.net/asset/kcfinder/upload/files/SMP%20Depan1.PNG)
+
+Tidak hanya itu, pengisian data pada Ijazah juga masih dilakukan dengan tulisan tangan. Berbeda dengan tulisan komputer yang konsisten secara penulisan, tulisan tangan oleh manusia memiliki ukuran, ketebalan, dan bentuk yang beragam. Tulisan tangan setiap manusia memiliki keunikan masing-masing. Hal ini tentu menjadi tantangan dalam mendapatkan akurasi pengenalan tulisan tangan yang tinggi.
+
+Oleh karena itu, otomatisasi pembacaan data pada ijazah menjadi sebuah tantangan, terutama banyak dilakukan dalam proses pendataan murid, contoh saat penerimaan murid baru atau mahasiswa baru. Penelitian ini dibuat untuk menyelesaikan permasalahan tersebut. Secara garis besar, tahapan program dalam penelitian ini ialah: Input program berupa sebuah gambar ijazah, diproses, dan menghasilkan output sebuah label dan text.
 
 ### Tahapan Proses:
 1. Mendeteksi lokasi data pada gambar ijazah.
